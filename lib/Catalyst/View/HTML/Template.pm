@@ -5,7 +5,7 @@ use base 'Catalyst::Base';
 
 use HTML::Template;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 =head1 NAME
 
@@ -56,6 +56,28 @@ sub process {
     my ( $self, $c ) = @_;
 
     my $filename = $c->stash->{template} || $c->req->match;
+    my $body = $self->render($c,$filename);
+
+    unless ( $c->response->headers->content_type ) {
+        $c->res->headers->content_type('text/html; charset=utf-8');
+    }
+
+    $c->response->body($body);
+
+    return 1;
+}
+
+=item render
+
+Renders the given template and returns output. Template params are set up
+either from the contents of  C<%$args> if $args is a hashref, or C<< $c->stash >>,
+augmented with C<base> set to C<< $c->req->base >> and C<name> to
+C<< $c->config->{name} >>.
+
+=cut
+
+sub render {
+    my ( $self, $c, $filename, $args ) = @_;
 
     unless ($filename) {
         $c->log->debug('No template specified for rendering') if $c->debug;
@@ -72,15 +94,17 @@ sub process {
 
     my $template = HTML::Template->new( %options, %{ $self->config } );
 
+    my $template_params = $args && ref($args) eq 'HASH' ? $args : $c->stash;
+
     $template->param(
         base => $c->req->base,
         name => $c->config->{name},
-        %{ $c->stash }
+        %$template_params
     );
 
-    my $body;
+    my $output;
 
-    eval { $body = $template->output };
+    eval { $output = $template->output };
 
     if ( my $error = $@ ) {
         chomp $error;
@@ -89,14 +113,7 @@ sub process {
         $c->error($error);
         return 0;
     }
-
-    unless ( $c->response->headers->content_type ) {
-        $c->res->headers->content_type('text/html; charset=utf-8');
-    }
-
-    $c->response->body($body);
-
-    return 1;
+    return $output;
 }
 
 =item config
