@@ -1,11 +1,11 @@
 package Catalyst::View::HTML::Template;
 
 use strict;
-use base 'Catalyst::Base';
+use base 'Catalyst::View';
 
 use HTML::Template;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 =head1 NAME
 
@@ -87,12 +87,12 @@ sub render {
     my %options = (
         cache    => 1,
         filename => $filename,
-        path     => [ $c->config->{root}, $c->config->{root} . "/base" ]
+        path     => [ $c->path_to('root'), $c->path_to('root','base') ],
     );
 
     $c->log->debug(qq/Rendering template "$filename"/) if $c->debug;
 
-    my $template = HTML::Template->new( %options, %{ $self->config } );
+    my $template = HTML::Template->new( %options, %{ $self } );
 
     my $template_params = $args && ref($args) eq 'HASH' ? $args : $c->stash;
 
